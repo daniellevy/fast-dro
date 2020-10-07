@@ -1,0 +1,66 @@
+job_details:
+  path: train.py
+  n_cpus: 4
+  mem: 12G
+
+parameters:
+  dataset: ['mnist_typed_600']
+  data_dir: ['/data']
+  epochs: [300]
+  wd: [1e-2]
+  lr_schedule: ['constant']
+  geometry: ['cvar']
+  size: [0.02]
+  reg: [0.0]
+  seed: [1, 10, 100, 1000, 1337]
+  product:
+    config1:
+      algorithm: ['batch']
+      batch_size: [10]
+      batch_size_max: [-1]
+      lr: [1e-4]
+      momentum: [0.9]
+      averaging: ['constant_3.0']
+    config2:
+      algorithm: ['batch']
+      batch_size: [50]
+      batch_size_max: [-1]
+      lr: [1e-4]
+      momentum: [0.9]
+      averaging: ['constant_3.0']
+    config3:
+      algorithm: ['batch']
+      batch_size: [500]
+      batch_size_max: [-1]
+      lr: [1e-3]
+      momentum: [0.9]
+      averaging: ['constant_3.0']
+    config4:
+      algorithm: ['batch']
+      batch_size: [5000]
+      batch_size_max: [-1]
+      lr: [5e-3]
+      momentum: [0.9]
+      averaging: ['constant_3.0']
+    config5:
+      algorithm: ['batch']
+      batch_size: [-1]
+      batch_size_max: [-1]
+      lr: [0.01]
+      momentum: [0.9]
+      averaging: ['none']
+    config6:
+      algorithm: ['multilevel']
+      batch_size: [10]
+      batch_size_max: [50000]
+      lr: [5e-4]
+      momentum: [0.0]
+      averaging: ['constant_3.0']
+    config7:
+      algorithm: ['multilevel']
+      batch_size: [50]
+      batch_size_max: [50000]
+      lr: [1e-3]
+      momentum: [0.]
+      averaging: ['constant_3.0']
+      

@@ -1,0 +1,31 @@
+job_details:
+  path: train.py
+
+parameters:
+  dataset: ['mnist_typed_600']
+  algorithm: ['batch']
+  data_dir: ['/data']
+  epochs: [30000]
+  eval_freq: [15]
+  wd: [1e-2]
+  lr_schedule: ['constant']
+  momentum: [0.9]
+  averaging: ['none']
+  batch_size: [-1]
+  product:
+    config1:
+      geometry: ['chi-square']
+      size: [1.0]
+      reg: [0.0]
+      lr: [0.02]
+    config2:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [0.05]
+      lr: [0.01]
+    config3:
+      geometry: ['cvar']
+      size: [0.02]
+      reg: [0.0]
+      lr: [0.01]
+        

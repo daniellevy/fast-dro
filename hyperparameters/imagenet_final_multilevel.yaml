@@ -1,0 +1,59 @@
+job_details:
+  path: train.py
+  n_cpus: 4
+  mem: 16G
+
+parameters:
+  algorithm: ['multilevel']
+  dataset: ['imagenet']
+  data_dir: ['/data']
+  epochs: [30]
+  batch_size_eval: [5000]
+  batch_size_max: [50000]
+  lr_schedule: ['constant']
+  averaging: ['constant_3.0']
+  wd: [1e-3]
+  seed: [1, 10, 100, 1000, 1337]
+  product:
+    config1:
+      geometry: ['chi-square']
+      size: [1.0]
+      reg: [0.0]
+      batch_size: [20]
+      lr: [5e-3]
+      momentum: [0.0]
+    config2:
+      geometry: ['chi-square']
+      size: [1.0]
+      reg: [0.0]
+      batch_size: [50]
+      lr: [1e-3]
+      momentum: [0.9]
+    config3:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [0.4]
+      batch_size: [20]
+      lr: [5e-3]
+      momentum: [0.0]
+    config4:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [0.4]
+      batch_size: [50]
+      lr: [1e-3]
+      momentum: [0.9]
+    config5:
+      geometry: ['cvar']
+      size: [0.1]
+      reg: [0.0]
+      batch_size: [20]
+      lr: [2e-3]
+      momentum: [0.0]
+    config6:
+      geometry: ['cvar']
+      size: [0.1]
+      reg: [0.0]
+      batch_size: [50]
+      lr: [5e-3]
+      momentum: [0.0]

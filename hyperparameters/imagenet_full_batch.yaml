@@ -1,0 +1,28 @@
+job_details:
+  path: train.py
+
+parameters:
+  algorithm: ['batch']
+  dataset: ['imagenet']
+  data_dir: ['/data']
+  epochs: [1000]
+  eval_freq: [5] 
+  momentum: [0.9]
+  lr_schedule: ['constant']
+  wd: [1e-3]
+  lr: [0.5]
+  product_1:
+    config1:
+      geometry: ['chi-square']
+      size: [1.0]
+      reg: [0.0]
+    config2:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [0.4]
+    config3:
+      geometry: ['cvar']
+      size: [0.1]
+      reg: [0.0]
+  batch_size: [-1]
+  averaging: ['none']

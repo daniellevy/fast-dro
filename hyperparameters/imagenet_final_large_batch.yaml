@@ -1,0 +1,36 @@
+job_details:
+  path: train.py
+  n_cpus: 4
+  mem: 64G
+
+parameters:
+  algorithm: ['batch']
+  dataset: ['imagenet']
+  data_dir: ['/data']
+  epochs: [30]
+  batch_size_eval: [5000]
+  momentum: [0.9]
+  lr_schedule: ['constant']
+  wd: [1e-3]
+  lr: [0.5]
+  seed: [1, 10, 100, 1000, 1337]
+  product_1:
+    config1:
+      geometry: ['chi-square']
+      size: [1.0]
+      reg: [0.0]
+    config2:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [0.4]
+    config3:
+      geometry: ['cvar']
+      size: [0.1]
+      reg: [0.0]
+  product_2:
+    config1:
+      batch_size: [150000]
+      averaging: ['constant_3.0']
+    config2:
+      batch_size: [-1]
+      averaging: ['none']
