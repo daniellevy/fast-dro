@@ -253,3 +253,34 @@ class RandomBatchSizeSampler(Sampler):
         else:
             p = (1 - self.doubling_probability) ** factor
         return p
+
+
+class CustomDistributionSampler(Sampler):
+    """Balanced sampling from the labeled and unlabeled data"""
+
+    def __init__(self, dataset,
+                 batch_size,
+                 replace=True,
+                 num_batches=None):
+        self.n = len(dataset)
+        self.num_batches = (num_batches if num_batches is not None
+                            else self.n // batch_size)
+        self.batch_size = batch_size
+        self.replace = replace
+        self.p = np.ones(self.n) / self.n
+
+        super().__init__(None)
+
+    def __iter__(self):
+        for _ in range(self.num_batches):
+            # pdb.set_trace()
+            p = np.maximum(self.p, 0.0)
+            p /= p.sum()  # to make absolutely sure that p is in the simplex
+                          # otherwise there seem to be random crashes coming
+                          # from np.random.choice
+            self.inds = np.random.choice(self.n, replace=self.replace,
+                                         size=self.batch_size, p=p)
+            yield self.inds
+
+    def __len__(self):
+        return self.num_batches

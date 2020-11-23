@@ -1,11 +1,13 @@
 """
-Collection of utils used throughout the code.
+Utility functions used throughout the code.
 """
 
 import io
 import json
 import os
 import pickle
+
+import logging
 
 import numpy as np
 import pathlib
@@ -164,6 +166,74 @@ def analytical_dro_objective(p, invcdf, size=1.0, geometry='cvar', reg=0.0,
         return out, opt_lambda
     else:
         return out
+
+
+def project_to_cs_ball(v, rho):
+    """Numpy/Scipy projection to chi-square ball of radius rho"""
+    n = len(v)
+    def cs_div(p):
+        return 0.5 * np.mean((n * p - 1)**2)
+
+    # first, check if a simplex projection is within the chi-square ball
+    target_simplex = lambda eta: np.sum(np.maximum(v - eta, 0)) - 1.0
+    eta_min_simplex = v.min() - 1 / n
+    eta_max_simplex = v.max()
+    eta_simplex = optimize.brentq(
+        target_simplex, eta_min_simplex, eta_max_simplex)
+    p_candidate = np.maximum(v - eta_simplex, 0)
+    if cs_div(p_candidate) <= rho:
+        return p_candidate
+
+    # second, compute a chi-square best response
+    def target_cs(eta, return_p=False):
+        p = np.maximum(v - eta, 0)
+        if p.sum() == 0.0:
+            p[np.argmax(v)] = 1.0
+        else:
+            p /= p.sum()
+        err = cs_div(p) - rho
+        return p if return_p else err
+    eta_max_cs = v.max()
+    eta_min_cs = v.min()
+    if target_cs(eta_max_cs) <= 0:
+        return target_cs(eta_max_cs, return_p=True)
+    while target_cs(eta_min_cs) > 0.0:  # find left interval edge for bisection
+        eta_min_cs = 2 * eta_min_cs - eta_max_cs
+    eta_cs = optimize.brentq(
+        target_cs, eta_min_cs, eta_max_cs)
+    p_candidate = target_cs(eta_cs, return_p=True)
+    assert np.abs(cs_div(p_candidate) - rho) < rho * 1e-2
+    return p_candidate
+
+
+def project_to_cvar_ball(w, alpha):
+    if alpha == 1.0:
+        return np.ones(n) / n
+    n = len(w)
+    k = alpha * n
+    w = w + 1e-12  # slight padding to avoid numerical issues
+    logw = np.log(w) - np.log(w.max())  # offset so maximum value is 0.0
+
+    def target_cvar(nu, return_p=False):
+        w_ = np.exp(np.minimum(logw, nu))
+        p = w_ / w_.sum()
+        return p if return_p else p.max() - 1 / k
+
+    if target_cvar(0.0) <= 0.0:
+        p = w / w.sum()
+    else:
+        nu_max = 0.0
+        nu_min = logw.min()
+        nu = optimize.brentq(
+            target_cvar, nu_min, nu_max)
+        p = target_cvar(nu, return_p=True)
+    if p.max() > 1 / k * 1.01:
+        logging.warning(f'project_to_cvar_ball: Maximum element of p'
+                        f' is {p.max()}; supposed to be {1/k}')
+    if np.abs(p.sum() - 1.0) > 1e-2:
+        logging.warning(f'project_to_cvar_ball: Elements of p sum to'
+                        f'{p.sum()} instead of 1.0')
+    return p
 
 
 def binomln(n, k):

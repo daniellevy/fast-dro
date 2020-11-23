@@ -1,7 +1,7 @@
 # Large-Scale Methods for Distributionally Robust Optimization
 
-Code for the paper *Large-Scale Methods for Distributionally Robust
-Optimization* by Daniel Levy*, Yair Carmon*, John C. Duchi and Aaron
+Code for the paper [*Large-Scale Methods for Distributionally Robust
+Optimization*](https://arxiv.org/pdf/2010.05893.pdf) by Daniel Levy*, Yair Carmon*, John C. Duchi and Aaron
 Sidford, to appear at NeurIPS 2020.
 
 ## Dependencies
@@ -26,14 +26,12 @@ extracting features can be found in `./features`.
 
 ## Robust Losses
 
-The file `robust_losses.py` implements the robust losses we analyze in the paper
-(see Section 2). This file has no dependency on the rest of the code and is
-usable in any existing (PyTorch) training code to obtain robust models. We show
+The file `robust_losses.py` implements the gradient estimators we consider in the paper.
+In particular, it includes the two main estimators we study: Mini-batch and
+and the multilevel Monte Carlo (MLMC). It also includes implementations for the "baselines" methods
+we consider: dual-SGM and primal-dual. Our code relies on PyTorch for auto-differentiation and 
+is usable in any existing (PyTorch) training code. We show
 in Appendix F.3 how to integrate it in less than 3 lines of code.
-
-PyTorch implementation of stochastic primal-dual algorithms for robust
-objectives (e.g., [Namkoong & Duchi,
-2016](https://papers.nips.cc/paper/6040-stochastic-gradient-methods-for-distributionally-robust-optimization-with-f-divergences.pdf)) to come.
 
 ## Training and Evaluation
 The training and evaluation code are contained in `train.py`. Here is an example
@@ -52,5 +50,10 @@ are detailed in the `./hyperparameters` folder. We describe our search strategy
 
 ## Reference
 ```
-Coming soon
+@inproceedings{levy2020large,
+  title={Large-Scale Methods for Distributionally Robust Optimization},
+  author={Levy, Daniel and Carmon, Yair and Duchi, John C and Sidford, Aaron},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2020}
+}
 ```

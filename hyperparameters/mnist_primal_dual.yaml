@@ -1,0 +1,30 @@
+job_details:
+  path: train.py
+  n_cpus: 4
+  mem: 12G
+  
+parameters:
+  algorithm: ['primaldual']
+  dataset: ['mnist_typed_600']
+  data_dir: ['/britten1/yairc/fastdro/data']
+  epochs: [300]
+  wd: [1e-2]
+  lr_schedule: ['constant']
+  batch_size: [500]
+  averaging: ['constant_3.0']
+  momentum: [0.9]
+  reg: [0.0]
+  product:
+    config1:
+      geometry: ['cvar']
+      size: [0.02]
+      lr: [2e-2]
+      lr_dual: [3e-4]
+      clip: [1.0]
+    config3:
+      geometry: ['chi-square']
+      size: [1.0]
+      lr: [2e-2]
+      lr_dual: [3e-7]
+      clip: [-1.0]
+      

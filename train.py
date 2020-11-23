@@ -20,9 +20,9 @@ from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import LambdaLR
 
 from datasets import (MNISTandTypedFeatures, ImageNetFeatures,
-                      RandomBatchSizeSampler, DATASETS)
+                      RandomBatchSizeSampler, CustomDistributionSampler)
 
-from robust_losses import (RobustLoss, DualRobustLoss,
+from robust_losses import (RobustLoss, DualRobustLoss, PrimalDualRobustLoss,
                            MultiLevelRobustLoss, GEOMETRIES)
 
 from utils import aggregate_by_group, average_step, average_step_ema, copy_state
@@ -58,7 +58,8 @@ parser.add_argument('--averaging', type=str, default='none',
                          '"epoch_X" to restart averaging every epoch, default to 1')
 
 parser.add_argument('--algorithm', type=str, default='batch',
-                    choices=('batch', 'dual', 'multilevel', 'erm'))
+                    choices=('batch', 'dual', 'multilevel', 'eml', 'erm',
+                             'primaldual'))
 parser.add_argument('--doubling_probability', type=float, default=0.5,
                     help='Doubling probability for multi-level batch size')
 parser.add_argument('--batch_size_max', type=int, default=-1,
@@ -77,7 +78,12 @@ parser.add_argument('--ada_eps', type=float, default=1e-8)
 parser.add_argument('--heavy_ball', default=False, action='store_true')
 parser.add_argument('--lr', type=float, default=0.1)
 parser.add_argument('--lr_eta', type=float, default=0.1,
-                    help='step size for dual variable')
+                    help='step size for Largrange dual variable')
+parser.add_argument('--lr_dual', type=float, default=1e-3,
+                    help='step size for dual block in primal-dual methods')
+parser.add_argument('--clip', type=float, default=1.0,
+                    help='gradient clipping for p in primal-dual methods')
+
 parser.add_argument('--lr_schedule', type=str, default='constant',
                     help='Step size schedule. supporting poly_xx, constant, '
                          'cosine, step_xx_yy')
@@ -173,6 +179,11 @@ elif args.algorithm in ('batch', 'dual', 'erm'):
                               batch_size=(args.batch_size if args.batch_size > 0
                                           else len(dataset_train)),
                               shuffle=True, **data_loader_kwargs)
+elif args.algorithm == 'primaldual':
+    train_sampler = CustomDistributionSampler(
+        dataset_train, batch_size=args.batch_size)
+    loader_train = DataLoader(dataset_train, batch_sampler=train_sampler,
+                              **data_loader_kwargs)
 else:
     raise ValueError('Unkown algorithm %s' % args.grad_est)
 
@@ -212,6 +223,16 @@ elif args.algorithm == 'multilevel':
     robust_layer = RobustLoss(args.size, args.reg, args.geometry)
     robust_loss = MultiLevelRobustLoss(
         robust_layer, train_sampler.batch_size_pmf, args.batch_size)
+elif args.algorithm == 'primaldual':
+    assert args.reg == 0.0  # currently not supporting regularization term
+
+    if args.clip < 0:
+        clip = None
+    else:
+        clip = args.clip
+
+    robust_loss = PrimalDualRobustLoss(
+        args.size, args.geometry, train_sampler, args.lr_dual, clip=clip)
 else:
     raise ValueError('Unknown algorithm %s' % args.algorithm)
 
@@ -483,7 +504,7 @@ def main():
                          'samples': train_df.batch_size.sum(),
                          'train_clocktime': 0.,
                          'val_clocktime': 0.,
-                         }
+                        }
             if eval_train:
                 eval_data.update(
                     eval(epoch,

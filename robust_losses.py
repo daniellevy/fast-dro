@@ -1,12 +1,18 @@
 """
-Implements the PyTorch modules to optimize the robust loss
-for (KL-regularized) CVaR, constrained-\chi^2 and penalized-\chi^2
+PyTorch modules for computing robust losses with
+for (KL-regularized) CVaR, constrained-chi^2 and penalized-chi^2
+uncertainty sets.
+Includes losses appropriate for our porposed batch and MLMC gradient estimators
+as well as losses for the dual-SGM and primal-dual methods.
 """
 
 import torch
 import torch.nn as nn
 import numpy as np
 import logging
+from utils import project_to_cs_ball, project_to_cvar_ball
+from datasets import CustomDistributionSampler
+import pdb
 
 GEOMETRIES = ('cvar', 'chi-square')
 MIN_REL_DIFFERENCE = 1e-5
@@ -14,7 +20,6 @@ MIN_REL_DIFFERENCE = 1e-5
 
 def chi_square_value(p, v, reg):
     """Returns <p, v> - reg * chi^2(p, uniform) for Torch tensors"""
-
     m = p.shape[0]
 
     with torch.no_grad():
@@ -25,7 +30,6 @@ def chi_square_value(p, v, reg):
 
 def cvar_value(p, v, reg):
     """Returns <p, v> - reg * KL(p, uniform) for Torch tensors"""
-
     m = p.shape[0]
 
     with torch.no_grad():
@@ -33,6 +37,7 @@ def cvar_value(p, v, reg):
         kl = np.log(m) + (p[idx] * torch.log(p[idx])).sum()
 
     return torch.dot(p, v) - reg * kl
+
 
 def fenchel_kl_cvar(v, alpha):
     """Returns the empirical mean of the Fenchel dual for KL CVaR"""
@@ -43,10 +48,10 @@ def fenchel_kl_cvar(v, alpha):
     w2 = (v2 + 1) * (1 / alpha) - 1
     return (w1.sum() + w2.sum()) / v.shape[0]
 
+
 def bisection(eta_min, eta_max, f, tol=1e-6, max_iter=500):
     """Expects f an increasing function and return eta in [eta_min, eta_max] 
     s.t. |f(eta)| <= tol (or the best solution after max_iter iterations"""
-
     lower = f(eta_min)
     upper = f(eta_max)
 
@@ -90,7 +95,6 @@ def huber_loss(x, delta=1.):
     returns 0.5 * x^2 if |a| <= \delta
             \delta * (|a| - 0.5 * \delta) o.w.
     """
-
     if torch.abs(x) <= delta:
         return 0.5 * (x ** 2)
     else:
@@ -98,12 +102,10 @@ def huber_loss(x, delta=1.):
 
 
 class RobustLoss(nn.Module):
-    """PyTorch module for the robust loss"""
-
+    """PyTorch module for the batch robust loss estimator"""
     def __init__(self, size, reg, geometry, tol=1e-4,
                  max_iter=1000, debugging=False):
         """
-
         Parameters
         ----------
 
@@ -112,7 +114,7 @@ class RobustLoss(nn.Module):
             Set float('inf') for unconstrained
         reg : float
             Strength of the regularizer, entropy if geometry == 'cvar'
-            \chi^2 divergence if geometry == 'chi-square'
+            $\chi^2$ divergence if geometry == 'chi-square'
         geometry : string
             Element of GEOMETRIES
         tol : float, optional
@@ -260,6 +262,7 @@ class RobustLoss(nn.Module):
             elif self.geometry == 'chi-square':
                 return chi_square_value(p, v, self.reg)
 
+
 class DualRobustLoss(torch.nn.Module):
     """Dual formulation of the robust loss, contains trainable parameter eta"""
 
@@ -327,6 +330,55 @@ class DualRobustLoss(torch.nn.Module):
                     return self.eta + 0.5 * self.reg + huber_loss(
                         torch.norm(w, p=2) / np.sqrt(n * self.reg),
                         delta=np.sqrt(self.reg * (1 + 2 * self.size)))
+
+
+class PrimalDualRobustLoss(nn.Module):
+    """Primal-dual robust loss.
+
+    This loss is build for a somewhat hacky implmentation of a primal-dual
+    optimization algorithm where the dual step (i.e., update to to the sampling
+    distribution) takes place *inside the forward pass*. The main drawback is
+    that this bakes in the (dual of part of the) optimization algorithm into
+    the loss, rather than having PyTorch's different optimizers take care
+    of the loss as usual. The main advantage is that this way we can
+    directly replace standard primal only losses without changing any
+    of the rest of the training code"""
+    def __init__(self, size, geometry, sampler: CustomDistributionSampler,
+                 step_size=1e-3, clip=0.01):
+        super().__init__()
+        self.size = size
+        self.geometry = geometry
+        self.step_size = step_size
+        self.clip = clip
+        self.is_erm = size == 0
+
+        self.sampler = sampler
+        if geometry not in GEOMETRIES:
+            raise ValueError('Geometry %s not supported' % geometry)
+
+        if geometry == 'cvar' and self.size > 1:
+            raise ValueError(f'alpha should be <= 1 for cvar, is {self.size}')
+
+    def forward(self, v, update=True):
+        if update and not self.is_erm:
+            p_update = np.zeros_like(self.sampler.p)
+            coefs = self.step_size / (
+                    len(v) * self.sampler.p[self.sampler.inds])
+            # pdb.set_trace()
+            np.add.at(p_update, self.sampler.inds,
+                      v.detach().cpu().numpy() * coefs)
+#             pdb.set_trace()
+            if self.clip is not None:
+                p_update = np.minimum(p_update, self.clip)
+            # pdb.set_trace()
+            if self.geometry == 'chi-square':
+                self.sampler.p = project_to_cs_ball(
+                    self.sampler.p + p_update, self.size)
+            elif self.geometry == 'cvar':
+                self.sampler.p = project_to_cvar_ball(
+                    self.sampler.p * np.exp(p_update), self.size)
+
+        return v.mean()
 
 
 class MultiLevelRobustLoss(torch.nn.Module):
