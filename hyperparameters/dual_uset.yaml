@@ -1,0 +1,76 @@
+job_details:
+  path: train.py
+  n_cpus: 4
+  mem: 16G
+
+parameters:
+  algorithm: ['dual']
+  dataset: ['mnist_typed_600']
+  data_dir: ['/data']
+  epochs: [300]
+  wd: [1e-2]
+  lr_schedule: ['constant']
+  batch_size: [500]
+  momentum: [0.9]
+  averaging: ['constant_3.0']
+  product1:
+    config1:
+      geometry: ['cvar']
+      lr: [1e-5]
+      lr_eta: [1e-3]
+      size: [2e-4]
+      reg: [0.0]
+    config2:
+      geometry: ['cvar']
+      lr: [3e-5]
+      lr_eta: [1e-4]
+      size: [6e-4]
+      reg: [0.0]
+    config3:
+      geometry: ['cvar']
+      lr: [1e-4]
+      lr_eta: [1e-4]
+      size: [2e-3]
+      reg: [0.0]
+    config4:
+      geometry: ['cvar']
+      lr: [3e-4]
+      lr_eta: [1e-3]
+      size: [6e-3]
+      reg: [0.0]
+    config5:
+      geometry: ['cvar']
+      lr: [1e-3]
+      lr_eta: [1e-2]
+      size: [2e-2]
+      reg: [0.0]
+    config6:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [5e-4]
+      lr: [1e-5]
+      lr_eta: [1e-2]
+    config7:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [1.5e-3]
+      lr: [3e-5]
+      lr_eta: [1e-2]
+    config8:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [5e-3]
+      lr: [1e-4]
+      lr_eta: [1e-2]
+    config9:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [1.5e-2]
+      lr: [1e-4]
+      lr_eta: [1e-4]
+    config10:
+      geometry: ['chi-square']
+      size: ['inf']
+      reg: [5e-2]
+      lr: [3e-4]
+      lr_eta: [1e-2]
